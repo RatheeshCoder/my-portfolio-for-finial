@@ -84,3 +84,12 @@
     font-size: 0.8rem;
   }
 }
+
+.card-description p{
+  font-family: 'neoteric-font', monospace !important;
+  text-transform: capitalize !important;
+}
+
+.card-description h3{
+  font-family: 'groupe-font', monospace !important;
+}

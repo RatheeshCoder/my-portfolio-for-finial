@@ -1,7 +1,26 @@
 * {
   font-family: sans-serif;
 }
+@font-face {
+  font-family: "aquire-font";
+  src: url("./fonts/aquire-font/AquireBold-8Ma60.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
 
+@font-face {
+  font-family: "groupe-font";
+  src: url("./fonts/groupe-font/GroupeMedium-8MXgn.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "neoteric-font";
+  src: url("./fonts/a-astro-space-font/AstroSpace-0Wl3o.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
 body {
   margin: 0;
   background: rgb(0, 0, 0);
@@ -38,12 +57,12 @@ a {
   cursor: pointer;
 }
 
-.App {
+/* .App {
   background-image: url('./assets/effect.png');
   animation: static 3s steps(5, end) infinite;
   z-index: 999;
   background-size: 200px;
-}
+} */
 
 footer h3 {
   text-align: center;

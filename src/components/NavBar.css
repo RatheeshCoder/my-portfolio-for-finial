@@ -26,12 +26,16 @@ nav {
   font-weight: 600;
 }
 
+.menu a{
+  font-family: 'aquire-font', monospace;
+}
+
 .tophead > h1 {
   display: flex;
 }
 
 .name-logo {
-  font-family: 'Space Mono', monospace;
+  font-family: 'aquire-font', monospace;
   font-size: 1.3em;
 }
 

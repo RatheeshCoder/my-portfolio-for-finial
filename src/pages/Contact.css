@@ -16,7 +16,7 @@
   -webkit-background-clip: text;
   background-image: url('../assets/contactbg.jpeg');
   font-size: 9rem;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'aquire-font', monospace !important;
   letter-spacing: 0.2rem;
 }
 
@@ -26,7 +26,7 @@
 
 .footer-right h3 {
   font-size: 2.2rem;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'groupe-font', monospace !important;
   letter-spacing: 0.2rem;
   opacity: 0.8;
 }
@@ -42,7 +42,7 @@
   padding: 0.4rem 1rem;
   border-radius: 100px;
   border: 1px solid black;
-  font-family: 'Orbit', sans-serif;
+  font-family: 'aquire-font', monospace !important;
 }
 
 hr {
@@ -153,4 +153,8 @@ h3 span a::after {
     font-size: 1rem;
     margin: 0.5rem 0;
   }
+}
+
+.social a{
+  font-family: 'groupe-font', monospace !important;
 }
