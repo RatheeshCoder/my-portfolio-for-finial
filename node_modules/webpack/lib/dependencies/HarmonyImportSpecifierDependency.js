@@ -9,6 +9,7 @@ const Dependency = require("../Dependency");
 const {
 	getDependencyUsedByExportsCondition
 } = require("../optimize/InnerGraph");
+const { getTrimmedIdsAndRange } = require("../util/chainedImports");
 const makeSerializable = require("../util/makeSerializable");
 const propertyAccess = require("../util/propertyAccess");
 const HarmonyImportDependency = require("./HarmonyImportDependency");
@@ -19,6 +20,8 @@ const HarmonyImportDependency = require("./HarmonyImportDependency");
 /** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
 /** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
+/** @typedef {import("../Module")} Module */
+/** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("../ModuleGraphConnection").ConnectionState} ConnectionState */
@@ -61,14 +64,15 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 		this.range = range;
 		this.idRanges = idRanges;
 		this.exportPresenceMode = exportPresenceMode;
+		/** @type {boolean | undefined} */
 		this.namespaceObjectAsContext = false;
 		this.call = undefined;
 		this.directImport = undefined;
 		this.shorthand = undefined;
 		this.asiSafe = undefined;
-		/** @type {Set<string> | boolean} */
+		/** @type {Set<string> | boolean | undefined} */
 		this.usedByExports = undefined;
-		/** @type {Set<string>} */
+		/** @type {Set<string> | undefined} */
 		this.referencedPropertiesInDestructuring = undefined;
 	}
 
@@ -143,11 +147,14 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 		let namespaceObjectAsContext = this.namespaceObjectAsContext;
 		if (ids[0] === "default") {
 			const selfModule = moduleGraph.getParentModule(this);
-			const importedModule = moduleGraph.getModule(this);
+			const importedModule =
+				/** @type {Module} */
+				(moduleGraph.getModule(this));
 			switch (
 				importedModule.getExportsType(
 					moduleGraph,
-					selfModule.buildMeta.strictHarmonyModule
+					/** @type {BuildMeta} */
+					(selfModule.buildMeta).strictHarmonyModule
 				)
 			) {
 				case "default-only":
@@ -201,7 +208,10 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	_getEffectiveExportPresenceLevel(moduleGraph) {
 		if (this.exportPresenceMode !== ExportPresenceModes.AUTO)
 			return this.exportPresenceMode;
-		return moduleGraph.getParentModule(this).buildMeta.strictHarmonyModule
+		const buildMeta = /** @type {BuildMeta} */ (
+			moduleGraph.getParentModule(this).buildMeta
+		);
+		return buildMeta.strictHarmonyModule
 			? ExportPresenceModes.ERROR
 			: ExportPresenceModes.WARN;
 	}
@@ -209,7 +219,7 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	/**
 	 * Returns warnings
 	 * @param {ModuleGraph} moduleGraph module graph
-	 * @returns {WebpackError[]} warnings
+	 * @returns {WebpackError[] | null | undefined} warnings
 	 */
 	getWarnings(moduleGraph) {
 		const exportsPresence = this._getEffectiveExportPresenceLevel(moduleGraph);
@@ -222,7 +232,7 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	/**
 	 * Returns errors
 	 * @param {ModuleGraph} moduleGraph module graph
-	 * @returns {WebpackError[]} errors
+	 * @returns {WebpackError[] | null | undefined} errors
 	 */
 	getErrors(moduleGraph) {
 		const exportsPresence = this._getEffectiveExportPresenceLevel(moduleGraph);
@@ -315,30 +325,16 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 		// Skip rendering depending when dependency is conditional
 		if (connection && !connection.isTargetActive(runtime)) return;
 
-		const ids = dep.getIds(moduleGraph); // determine minimal set of IDs.
-		let trimmedIds = this._trimIdsToThoseImported(ids, moduleGraph, dep);
-
-		let [rangeStart, rangeEnd] = dep.range;
-		if (trimmedIds.length !== ids.length) {
-			// The array returned from dep.idRanges is right-aligned with the array returned from dep.getIds.
-			// Meaning, the two arrays may not always have the same number of elements, but the last element of
-			// dep.idRanges corresponds to [the expression fragment to the left of] the last element of dep.getIds.
-			// Use this to find the correct replacement range based on the number of ids that were trimmed.
-			const idx =
-				dep.idRanges === undefined
-					? -1 /* trigger failure case below */
-					: dep.idRanges.length + (trimmedIds.length - ids.length);
-			if (idx < 0 || idx >= dep.idRanges.length) {
-				// cspell:ignore minifiers
-				// Should not happen but we can't throw an error here because of backward compatibility with
-				// external plugins in wp5.  Instead, we just disable trimming for now.  This may break some minifiers.
-				trimmedIds = ids;
-				// TODO webpack 6 remove the "trimmedIds = ids" above and uncomment the following line instead.
-				// throw new Error("Missing range starts data for id replacement trimming.");
-			} else {
-				[rangeStart, rangeEnd] = dep.idRanges[idx];
-			}
-		}
+		const {
+			trimmedRange: [trimmedRangeStart, trimmedRangeEnd],
+			trimmedIds
+		} = getTrimmedIdsAndRange(
+			dep.getIds(moduleGraph),
+			dep.range,
+			dep.idRanges,
+			moduleGraph,
+			dep
+		);
 
 		const exportExpr = this._getCodeForIds(
 			dep,
@@ -347,46 +343,10 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 			trimmedIds
 		);
 		if (dep.shorthand) {
-			source.insert(rangeEnd, `: ${exportExpr}`);
+			source.insert(trimmedRangeEnd, `: ${exportExpr}`);
 		} else {
-			source.replace(rangeStart, rangeEnd - 1, exportExpr);
+			source.replace(trimmedRangeStart, trimmedRangeEnd - 1, exportExpr);
 		}
-	}
-
-	/**
-	 * @summary Determine which IDs in the id chain are actually referring to namespaces or imports,
-	 * and which are deeper member accessors on the imported object.  Only the former should be re-rendered.
-	 * @param {string[]} ids ids
-	 * @param {ModuleGraph} moduleGraph moduleGraph
-	 * @param {HarmonyImportSpecifierDependency} dependency dependency
-	 * @returns {string[]} generated code
-	 */
-	_trimIdsToThoseImported(ids, moduleGraph, dependency) {
-		let trimmedIds = [];
-		const exportsInfo = moduleGraph.getExportsInfo(
-			moduleGraph.getModule(dependency)
-		);
-		let currentExportsInfo = /** @type {ExportsInfo=} */ exportsInfo;
-		for (let i = 0; i < ids.length; i++) {
-			if (i === 0 && ids[i] === "default") {
-				continue; // ExportInfo for the next level under default is still at the root ExportsInfo, so don't advance currentExportsInfo
-			}
-			const exportInfo = currentExportsInfo.getExportInfo(ids[i]);
-			if (exportInfo.provided === false) {
-				// json imports have nested ExportInfo for elements that things that are not actually exported, so check .provided
-				trimmedIds = ids.slice(0, i);
-				break;
-			}
-			const nestedInfo = exportInfo.getNestedExportsInfo();
-			if (!nestedInfo) {
-				// once all nested exports are traversed, the next item is the actual import so stop there
-				trimmedIds = ids.slice(0, i + 1);
-				break;
-			}
-			currentExportsInfo = nestedInfo;
-		}
-		// Never trim to nothing.  This can happen for invalid imports (e.g. import { notThere } from "./module", or import { anything } from "./missingModule")
-		return trimmedIds.length ? trimmedIds : ids;
 	}
 
 	/**
@@ -437,7 +397,7 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 
 			exportExpr = runtimeTemplate.exportFromImport({
 				moduleGraph,
-				module: moduleGraph.getModule(dep),
+				module: /** @type {Module} */ (moduleGraph.getModule(dep)),
 				request: dep.request,
 				exportName: ids,
 				originModule: module,
