@@ -57,12 +57,13 @@ a {
   cursor: pointer;
 }
 
-/* .App {
-  background-image: url('./assets/effect.png');
-  animation: static 3s steps(5, end) infinite;
+.App {
+  background-image: url('./assets/effect.gif');
+ 
   z-index: 999;
-  background-size: 200px;
-} */
+  background-size:100%;
+ 
+}
 
 footer h3 {
   text-align: center;
