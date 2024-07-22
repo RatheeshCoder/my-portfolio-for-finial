@@ -13,7 +13,7 @@ const Hero = () => (
         <p className="paragraph">Hey there, I'm Ratheesh, a B.Tech student specializing in Artificial Intelligence & Data Science. By day, I'm diving into the world of data, but my creative side shines as a self-employed web designer and front-end developer. I blend technical expertise with design finesse to craft captivating websites and portfolios that exude professionalism. Let's collaborate and bring your digital ideas to life!</p>
         <div className="hero-btns">
           <button className="hire-me">
-            <a href="https://drive.google.com/file/d/1p00EPpOrt9_SEHII3o_kOz8hCmnL6Gky/view?usp=sharing" target="_blank" rel="noreferrer">
+            <a href="https://drive.google.com/file/d/1MPfGEDZ2J2ZHxJh6EQvEGFaC9btpjZwR/view?usp=sharing" target="_blank" rel="noreferrer">
               GET MY CV
             </a>
           </button>

@@ -4,6 +4,7 @@ import Hero from './pages/Hero';
 import About from './pages/About';
 import Projects from './pages/Projects';
 import Contact from './pages/Contact';
+import Chatbot from './pages/chatbot/Chatbot';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Projects />
         <Contact />
       </div>
+      <Chatbot/>
     </div>
   );
 }

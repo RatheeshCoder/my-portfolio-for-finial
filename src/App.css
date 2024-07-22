@@ -26,8 +26,8 @@ body {
   background: rgb(0, 0, 0);
 }
 
-body::-webkit-scrollbar {
-  display: none;
+*::-webkit-scrollbar {
+  display: none !important;
 }
 
 ul > li {
@@ -58,7 +58,7 @@ a {
 }
 
 .App {
-  background-image: url('./assets/effect.gif');
+  /* background-image: url('./assets/effect.gif'); */
  
   z-index: 999;
   background-size:100%;
